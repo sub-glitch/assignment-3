@@ -1,0 +1,68 @@
+name: Assignment 3 CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  validate:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run lint
+        run: ./scripts/lint.sh
+
+      - name: Run build checks
+        run: ./scripts/build.sh
+
+
+  test:
+
+    needs: validate
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        run: ./tests/test.sh
+
+
+  docker:
+
+    needs: test
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t assignment-3 .
+
+      - name: Docker help smoke test
+        run: docker run --rm assignment-3 help
+
+      - name: Docker system-info smoke test
+        run: docker run --rm assignment-3 system-info
+
+      - name: Docker invalid command test
+        run: |
+          if docker run --rm assignment-3 invalid-command
+          then
+            echo "Invalid command should fail"
+            exit 1
+          else
+            echo "Invalid command correctly returned non-zero"
+          fi
